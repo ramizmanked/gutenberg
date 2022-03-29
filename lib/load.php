@@ -114,6 +114,7 @@ require __DIR__ . '/experimental/class-wp-webfonts-provider.php';
 require __DIR__ . '/experimental/class-wp-webfonts-provider-local.php';
 require __DIR__ . '/experimental/webfonts.php';
 require __DIR__ . '/experimental/blocks.php';
+require __DIR__ . '/experimental/persisted-preferences.php';
 
 require __DIR__ . '/blocks.php';
 require __DIR__ . '/compat/wordpress-6.0/block-patterns-update.php';
