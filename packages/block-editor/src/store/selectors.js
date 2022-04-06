@@ -29,12 +29,10 @@ import {
 	parse,
 	switchToBlockType,
 } from '@wordpress/blocks';
-import { createRegistrySelector } from '@wordpress/data';
 import { Platform } from '@wordpress/element';
 import { applyFilters } from '@wordpress/hooks';
 import { symbol } from '@wordpress/icons';
 import { __ } from '@wordpress/i18n';
-import { store as preferencesStore } from '@wordpress/preferences';
 
 /**
  * A block selection object.
@@ -62,7 +60,6 @@ const MILLISECONDS_PER_WEEK = 7 * 24 * 3600 * 1000;
  * @type {Array}
  */
 const EMPTY_ARRAY = [];
-const EMPTY_OBJECT = {};
 
 /**
  * Returns a block's name given its client ID, or null if no block exists with
@@ -1590,25 +1587,7 @@ export function canLockBlockType( state, nameOrType ) {
 }
 
 /**
- * Return all insert usage stats.
- *
- * This is only exported since registry selectors need to be exported. It's marked
- * as unstable so that it's not considered part of the public API.
- *
- * @return {Object<string,Object>} An object with an `id` key representing the type
- *                                 of block and an object value that contains
- *                                 block insertion statistics.
- */
-export const __unstableGetInsertUsage = createRegistrySelector(
-	( select ) => () =>
-		select( preferencesStore ).get( 'core', 'insertUsage' ) ?? EMPTY_OBJECT
-);
-
-/**
  * Returns information about how recently and frequently a block has been inserted.
- *
- * This is only exported since registry selectors need to be exported. It's marked
- * as unstable so that it's not considered part of the public API.
  *
  * @param {Object} state Global application state.
  * @param {string} id    A string which identifies the insert, e.g. 'core/block/12'
@@ -1617,15 +1596,9 @@ export const __unstableGetInsertUsage = createRegistrySelector(
  *                                            insert occurred as a UNIX epoch, and `count` which is
  *                                            the number of inserts that have occurred.
  */
-export const __unstableGetInsertUsageForBlock = createRegistrySelector(
-	( select ) => ( state, id ) => {
-		const insertUsage = select( preferencesStore ).get(
-			'core',
-			'insertUsage'
-		);
-		return insertUsage?.[ id ] ?? null;
-	}
-);
+function getInsertUsage( state, id ) {
+	return state.preferences.insertUsage?.[ id ] ?? null;
+}
 
 /**
  * Returns whether we can show a block type in the inserter
@@ -1653,8 +1626,7 @@ const canIncludeBlockTypeInInserter = ( state, blockType, rootClientId ) => {
  */
 const getItemFromVariation = ( state, item ) => ( variation ) => {
 	const variationId = `${ item.id }/${ variation.name }`;
-	const { time, count = 0 } =
-		__unstableGetInsertUsageForBlock( state, variationId ) || {};
+	const { time, count = 0 } = getInsertUsage( state, variationId ) || {};
 	return {
 		...item,
 		id: variationId,
@@ -1729,8 +1701,7 @@ const buildBlockTypeItem = ( state, { buildScope = 'inserter' } ) => (
 		);
 	}
 
-	const { time, count = 0 } =
-		__unstableGetInsertUsageForBlock( state, id ) || {};
+	const { time, count = 0 } = getInsertUsage( state, id ) || {};
 	const blockItemBase = {
 		id,
 		name: blockType.name,
@@ -1838,8 +1809,7 @@ export const getInserterItems = createSelector(
 			}
 
 			const id = `core/block/${ reusableBlock.id }`;
-			const { time, count = 0 } =
-				__unstableGetInsertUsageForBlock( state, id ) || {};
+			const { time, count = 0 } = getInsertUsage( state, id ) || {};
 			const frecency = calculateFrecency( time, count );
 
 			return {
@@ -1906,7 +1876,7 @@ export const getInserterItems = createSelector(
 		state.blockListSettings[ rootClientId ],
 		state.blocks.byClientId,
 		state.blocks.order,
-		__unstableGetInsertUsage(),
+		state.preferences.insertUsage,
 		state.settings.allowedBlockTypes,
 		state.settings.templateLock,
 		getReusableBlocks( state ),
@@ -1985,7 +1955,7 @@ export const getBlockTransformItems = createSelector(
 	( state, rootClientId ) => [
 		state.blockListSettings[ rootClientId ],
 		state.blocks.byClientId,
-		__unstableGetInsertUsage(),
+		state.preferences.insertUsage,
 		state.settings.allowedBlockTypes,
 		state.settings.templateLock,
 		getBlockTypes(),
